@@ -178,6 +178,12 @@
             <artifactId>postgresql</artifactId>
             <version>9.4.1209</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core -->
+        <dependency>
+            <groupId>org.apache.calcite.avatica</groupId>
+            <artifactId>avatica-core</artifactId>
+            <version>1.12.0</version>
+        </dependency>
 
         <!--
             JAXB was removed from the JDK in Java10. So we need this here
