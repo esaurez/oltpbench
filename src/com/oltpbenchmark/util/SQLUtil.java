@@ -149,6 +149,7 @@ public abstract class SQLUtil {
         
         switch (dbType) {
             case POSTGRES:
+            case PMETRIC:
                 return String.format("pg_get_serial_sequence('%s', '%s')",
                                      catalog_tbl.getName(), catalog_col.getName());
             default:

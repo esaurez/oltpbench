@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.math.BigDecimal;
 
 import org.apache.log4j.Logger;
 
@@ -173,7 +174,7 @@ public class Payment extends TPCCProcedure {
         String w_street_1, w_street_2, w_city, w_state, w_zip, w_name;
         String d_street_1, d_street_2, d_city, d_state, d_zip, d_name;
 
-        payUpdateWhse.setDouble(1, paymentAmount);
+        payUpdateWhse.setBigDecimal(1, BigDecimal.valueOf(paymentAmount));
         payUpdateWhse.setInt(2, w_id);
         // MySQL reports deadlocks due to lock upgrades:
         // t1: read w_id = x; t2: update w_id = x; t1 update w_id = x
@@ -194,7 +195,7 @@ public class Payment extends TPCCProcedure {
         rs.close();
         rs = null;
 
-        payUpdateDist.setDouble(1, paymentAmount);
+        payUpdateDist.setBigDecimal(1, BigDecimal.valueOf(paymentAmount));
         payUpdateDist.setInt(2, w_id);
         payUpdateDist.setInt(3, districtID);
         result = payUpdateDist.executeUpdate();
@@ -243,8 +244,8 @@ public class Payment extends TPCCProcedure {
             if (c_data.length() > 500)
                 c_data = c_data.substring(0, 500);
 
-            payUpdateCustBalCdata.setDouble(1, c.c_balance);
-            payUpdateCustBalCdata.setDouble(2, c.c_ytd_payment);
+            payUpdateCustBalCdata.setBigDecimal(1, BigDecimal.valueOf(c.c_balance));
+            payUpdateCustBalCdata.setBigDecimal(2, BigDecimal.valueOf(c.c_ytd_payment));
             payUpdateCustBalCdata.setInt(3, c.c_payment_cnt);
             payUpdateCustBalCdata.setString(4, c_data);
             payUpdateCustBalCdata.setInt(5, customerWarehouseID);
@@ -257,8 +258,8 @@ public class Payment extends TPCCProcedure {
 
         } else { // GoodCredit
 
-            payUpdateCustBal.setDouble(1, c.c_balance);
-            payUpdateCustBal.setDouble(2, c.c_ytd_payment);
+            payUpdateCustBal.setBigDecimal(1, BigDecimal.valueOf(c.c_balance));
+            payUpdateCustBal.setBigDecimal(2, BigDecimal.valueOf(c.c_ytd_payment));
             payUpdateCustBal.setInt(3, c.c_payment_cnt);
             payUpdateCustBal.setInt(4, customerWarehouseID);
             payUpdateCustBal.setInt(5, customerDistrictID);
@@ -282,7 +283,7 @@ public class Payment extends TPCCProcedure {
         payInsertHist.setInt(4, districtID);
         payInsertHist.setInt(5, w_id);
         payInsertHist.setTimestamp(6, w.getBenchmarkModule().getTimestamp(System.currentTimeMillis()));
-        payInsertHist.setDouble(7, paymentAmount);
+        payInsertHist.setBigDecimal(7, BigDecimal.valueOf(paymentAmount));
         payInsertHist.setString(8, h_data);
         payInsertHist.executeUpdate();
 
