@@ -1,7 +1,7 @@
 -- TODO: c_since ON UPDATE CURRENT_TIMESTAMP,
 
-DROP TABLE IF EXISTS order_line;
-CREATE TABLE order_line (
+DROP TABLE IF EXISTS order_line1;
+CREATE TABLE order_line1 (
   ol_w_id int NOT NULL,
   ol_d_id int NOT NULL,
   ol_o_id int NOT NULL,
@@ -15,16 +15,16 @@ CREATE TABLE order_line (
   PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
 );
 
-DROP TABLE IF EXISTS new_order;
-CREATE TABLE new_order (
+DROP TABLE IF EXISTS new_order1;
+CREATE TABLE new_order1 (
   no_w_id int NOT NULL,
   no_d_id int NOT NULL,
   no_o_id int NOT NULL,
   PRIMARY KEY (no_w_id,no_d_id,no_o_id)
 );
 
-DROP TABLE IF EXISTS stock;
-CREATE TABLE stock (
+DROP TABLE IF EXISTS stock1;
+CREATE TABLE stock1 (
   s_w_id int NOT NULL,
   s_i_id int NOT NULL,
   s_quantity decimal(4,0) NOT NULL,
@@ -46,8 +46,8 @@ CREATE TABLE stock (
 );
 
 -- TODO: o_entry_d  ON UPDATE CURRENT_TIMESTAMP
-DROP TABLE IF EXISTS oorder;
-CREATE TABLE oorder (
+DROP TABLE IF EXISTS oorder1;
+CREATE TABLE oorder1 (
   o_w_id int NOT NULL,
   o_d_id int NOT NULL,
   o_id int NOT NULL,
@@ -61,8 +61,8 @@ CREATE TABLE oorder (
 );
 
 -- TODO: h_date ON UPDATE CURRENT_TIMESTAMP
-DROP TABLE IF EXISTS history;
-CREATE TABLE history (
+DROP TABLE IF EXISTS history1;
+CREATE TABLE history1 (
   h_c_id int NOT NULL,
   h_c_d_id int NOT NULL,
   h_c_w_id int NOT NULL,
@@ -73,8 +73,8 @@ CREATE TABLE history (
   h_data varchar(24) NOT NULL
 );
 
-DROP TABLE IF EXISTS customer;
-CREATE TABLE customer (
+DROP TABLE IF EXISTS customer1;
+CREATE TABLE customer1 (
   c_w_id int NOT NULL,
   c_d_id int NOT NULL,
   c_id int NOT NULL,
@@ -99,8 +99,8 @@ CREATE TABLE customer (
   PRIMARY KEY (c_w_id,c_d_id,c_id)
 );
 
-DROP TABLE IF EXISTS district;
-CREATE TABLE district (
+DROP TABLE IF EXISTS district1;
+CREATE TABLE district1 (
   d_w_id int NOT NULL,
   d_id int NOT NULL,
   d_ytd decimal(12,2) NOT NULL,
@@ -116,8 +116,8 @@ CREATE TABLE district (
 );
 
 
-DROP TABLE IF EXISTS item;
-CREATE TABLE item (
+DROP TABLE IF EXISTS item1;
+CREATE TABLE item1 (
   i_id int NOT NULL,
   i_name varchar(24) NOT NULL,
   i_price decimal(5,2) NOT NULL,
@@ -126,8 +126,8 @@ CREATE TABLE item (
   PRIMARY KEY (i_id)
 );
 
-DROP TABLE IF EXISTS warehouse;
-CREATE TABLE warehouse (
+DROP TABLE IF EXISTS warehouse1;
+CREATE TABLE warehouse1 (
   w_id int NOT NULL,
   w_ytd decimal(12,2) NOT NULL,
   w_tax decimal(4,4) NOT NULL,
@@ -142,22 +142,22 @@ CREATE TABLE warehouse (
 
 
 --add constraints and indexes
-CREATE INDEX idx_customer_name ON customer (c_w_id,c_d_id,c_last,c_first);
-CREATE INDEX idx_order ON oorder (o_w_id,o_d_id,o_c_id,o_id);
+CREATE INDEX idx_customer1_name ON customer1 (c_w_id,c_d_id,c_last,c_first);
+CREATE INDEX idx_order1 ON oorder1 (o_w_id,o_d_id,o_c_id,o_id);
 -- tpcc-mysql create two indexes for the foreign key constraints, Is it really necessary?
 -- CREATE INDEX FKEY_STOCK_2 ON STOCK (S_I_ID);
 -- CREATE INDEX FKEY_ORDER_LINE_2 ON ORDER_LINE (OL_SUPPLY_W_ID,OL_I_ID);
 
 --add 'ON DELETE CASCADE'  to clear table work correctly
 
-ALTER TABLE district  ADD CONSTRAINT fkey_district_1 FOREIGN KEY(d_w_id) REFERENCES warehouse(w_id) ON DELETE CASCADE;
-ALTER TABLE customer ADD CONSTRAINT fkey_customer_1 FOREIGN KEY(c_w_id,c_d_id) REFERENCES district(d_w_id,d_id)  ON DELETE CASCADE ;
-ALTER TABLE history  ADD CONSTRAINT fkey_history_1 FOREIGN KEY(h_c_w_id,h_c_d_id,h_c_id) REFERENCES customer(c_w_id,c_d_id,c_id) ON DELETE CASCADE;
-ALTER TABLE history  ADD CONSTRAINT fkey_history_2 FOREIGN KEY(h_w_id,h_d_id) REFERENCES district(d_w_id,d_id) ON DELETE CASCADE;
-ALTER TABLE new_order ADD CONSTRAINT fkey_new_order_1 FOREIGN KEY(no_w_id,no_d_id,no_o_id) REFERENCES oorder(o_w_id,o_d_id,o_id) ON DELETE CASCADE;
-ALTER TABLE oorder ADD CONSTRAINT fkey_order_1 FOREIGN KEY(o_w_id,o_d_id,o_c_id) REFERENCES customer(c_w_id,c_d_id,c_id) ON DELETE CASCADE;
-ALTER TABLE order_line ADD CONSTRAINT fkey_order_line_1 FOREIGN KEY(ol_w_id,ol_d_id,ol_o_id) REFERENCES oorder(o_w_id,o_d_id,o_id) ON DELETE CASCADE;
-ALTER TABLE order_line ADD CONSTRAINT fkey_order_line_2 FOREIGN KEY(ol_supply_w_id,ol_i_id) REFERENCES stock(s_w_id,s_i_id) ON DELETE CASCADE;
-ALTER TABLE stock ADD CONSTRAINT fkey_stock_1 FOREIGN KEY(s_w_id) REFERENCES warehouse(w_id) ON DELETE CASCADE;
-ALTER TABLE stock ADD CONSTRAINT fkey_stock_2 FOREIGN KEY(s_i_id) REFERENCES item(i_id) ON DELETE CASCADE;
+ALTER TABLE district1  ADD CONSTRAINT fkey_district1_1 FOREIGN KEY(d_w_id) REFERENCES warehouse1(w_id) ON DELETE CASCADE;
+ALTER TABLE customer1 ADD CONSTRAINT fkey_customer1_1 FOREIGN KEY(c_w_id,c_d_id) REFERENCES district1(d_w_id,d_id)  ON DELETE CASCADE ;
+ALTER TABLE history1  ADD CONSTRAINT fkey_history1_1 FOREIGN KEY(h_c_w_id,h_c_d_id,h_c_id) REFERENCES customer1(c_w_id,c_d_id,c_id) ON DELETE CASCADE;
+ALTER TABLE history1  ADD CONSTRAINT fkey_history1_2 FOREIGN KEY(h_w_id,h_d_id) REFERENCES district1(d_w_id,d_id) ON DELETE CASCADE;
+ALTER TABLE new_order1 ADD CONSTRAINT fkey_new_order1_1 FOREIGN KEY(no_w_id,no_d_id,no_o_id) REFERENCES oorder1(o_w_id,o_d_id,o_id) ON DELETE CASCADE;
+ALTER TABLE oorder1 ADD CONSTRAINT fkey_order1_1 FOREIGN KEY(o_w_id,o_d_id,o_c_id) REFERENCES customer1(c_w_id,c_d_id,c_id) ON DELETE CASCADE;
+ALTER TABLE order_line1 ADD CONSTRAINT fkey_order_line1_1 FOREIGN KEY(ol_w_id,ol_d_id,ol_o_id) REFERENCES oorder1(o_w_id,o_d_id,o_id) ON DELETE CASCADE;
+ALTER TABLE order_line1 ADD CONSTRAINT fkey_order_line1_2 FOREIGN KEY(ol_supply_w_id,ol_i_id) REFERENCES stock1(s_w_id,s_i_id) ON DELETE CASCADE;
+ALTER TABLE stock1 ADD CONSTRAINT fkey_stock1_1 FOREIGN KEY(s_w_id) REFERENCES warehouse1(w_id) ON DELETE CASCADE;
+ALTER TABLE stock1 ADD CONSTRAINT fkey_stock1_2 FOREIGN KEY(s_i_id) REFERENCES item1(i_id) ON DELETE CASCADE;
 
