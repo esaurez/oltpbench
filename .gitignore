@@ -21,3 +21,5 @@ results
 
 # maven output
 target
+# intellij idea
+*.iml
