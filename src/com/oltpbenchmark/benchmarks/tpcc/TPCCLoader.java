@@ -141,27 +141,31 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
         }
     }
 
-    protected void transCommit(Connection conn) {
+    protected boolean transCommit(Connection conn) {
         try {
             conn.commit();
         } catch (SQLException se) {
-            LOG.debug(se.getMessage());
+            LOG.error(se.getMessage());
             transRollback(conn);
+            return false;
         }
+        return true;
     }
 
     protected int loadItems(Connection conn, int itemKount) {
-        int k = 0;
         int randPct = 0;
         int len = 0;
         int startORIGINAL = 0;
         boolean fail = false;
-        
-        try {
-            PreparedStatement itemPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_ITEM);
+        int k = 0;
+			try {
+				PreparedStatement itemPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_ITEM);
 
             Item item = new Item();
             int batchSize = 0;
+            int restartPoint = 1;
+            int retries = 0;
+            int maxRetries = 8;
             for (int i = 1; i <= itemKount; i++) {
 
                 item.i_id = i;
@@ -187,7 +191,6 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
                 item.i_im_id = TPCCUtil.randomNumber(1, 10000, benchmark.rng());
 
                 k++;
-
                 int idx = 1;
                 itemPrepStmt.setLong(idx++, item.i_id);
                 itemPrepStmt.setString(idx++, item.i_name);
@@ -197,10 +200,25 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
                 itemPrepStmt.addBatch();
                 batchSize++;
 
-                if (batchSize == TPCCConfig.configCommitCount) {
+                if (batchSize == TPCCConfig.configCommitCount || i == itemKount) {
                     itemPrepStmt.executeBatch();
                     itemPrepStmt.clearBatch();
-                    transCommit(conn);
+                    boolean completed = transCommit(conn);
+                    if(completed) {
+											restartPoint = i + 1;
+											retries=0;
+										}
+                    else{
+                    	retries++;
+                    	if(retries == maxRetries){
+                    		LOG.error("Max retries for loading items, giving up");
+												return (k);
+											}
+                    	k -= batchSize;
+                    	i = restartPoint;
+											int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+											Thread.sleep(sleep_ms);
+										}
                     batchSize = 0;
                 }
             } // end for
@@ -234,43 +252,56 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
     } // end loadItem()
 
     protected int loadWarehouse(Connection conn, int w_id) {
+			int maxRetries = 8;
+			int retry = 0;
+      while(true) {
+      	retry++;
+      	if(retry == maxRetries){
+      		return(1);
+				}
+				try {
+					PreparedStatement whsePrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_WAREHOUSE);
+					Warehouse warehouse = new Warehouse();
 
-        try {
-            PreparedStatement whsePrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_WAREHOUSE);
-            Warehouse warehouse = new Warehouse();
+					warehouse.w_id = w_id;
+					warehouse.w_ytd = 300000;
 
-            warehouse.w_id = w_id;
-            warehouse.w_ytd = 300000;
+					// random within [0.0000 .. 0.2000]
+					warehouse.w_tax = (double) ((TPCCUtil.randomNumber(0, 2000, benchmark.rng())) / 10000.0);
+					warehouse.w_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, benchmark.rng()));
+					warehouse.w_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					warehouse.w_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					warehouse.w_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					warehouse.w_state = TPCCUtil.randomStr(3).toUpperCase();
+					warehouse.w_zip = "123456789";
 
-            // random within [0.0000 .. 0.2000]
-            warehouse.w_tax = (double) ((TPCCUtil.randomNumber(0, 2000, benchmark.rng())) / 10000.0);
-			warehouse.w_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, benchmark.rng()));
-			warehouse.w_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-			warehouse.w_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-			warehouse.w_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-			warehouse.w_state = TPCCUtil.randomStr(3).toUpperCase(); 
-			warehouse.w_zip = "123456789";
-
-			int idx = 1;
-			whsePrepStmt.setLong(idx++, warehouse.w_id);
-			whsePrepStmt.setDouble(idx++, warehouse.w_ytd);
-			whsePrepStmt.setDouble(idx++, warehouse.w_tax);
-			whsePrepStmt.setString(idx++, warehouse.w_name);
-			whsePrepStmt.setString(idx++, warehouse.w_street_1);
-			whsePrepStmt.setString(idx++, warehouse.w_street_2);
-			whsePrepStmt.setString(idx++, warehouse.w_city);
-			whsePrepStmt.setString(idx++, warehouse.w_state);
-			whsePrepStmt.setString(idx++, warehouse.w_zip);
-			whsePrepStmt.execute();
-
-			transCommit(conn);
-		} catch (SQLException se) {
-			LOG.debug(se.getMessage());
-			transRollback(conn);
-		} catch (Exception e) {
-			e.printStackTrace();
-			transRollback(conn);
-		}
+					int idx = 1;
+					whsePrepStmt.setLong(idx++, warehouse.w_id);
+					whsePrepStmt.setDouble(idx++, warehouse.w_ytd);
+					whsePrepStmt.setDouble(idx++, warehouse.w_tax);
+					whsePrepStmt.setString(idx++, warehouse.w_name);
+					whsePrepStmt.setString(idx++, warehouse.w_street_1);
+					whsePrepStmt.setString(idx++, warehouse.w_street_2);
+					whsePrepStmt.setString(idx++, warehouse.w_city);
+					whsePrepStmt.setString(idx++, warehouse.w_state);
+					whsePrepStmt.setString(idx++, warehouse.w_zip);
+					whsePrepStmt.execute();
+					transCommit(conn);
+					break;
+				} catch (SQLException se) {
+					LOG.debug(se.getMessage());
+					transRollback(conn);
+					int sleep_ms = (int) ((Math.pow(2,retry) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+					try {
+						Thread.sleep(sleep_ms);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					transRollback(conn);
+				}
+			}
 
 		return (1);
 
@@ -286,6 +317,11 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 		    PreparedStatement stckPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_STOCK);
 
 			Stock stock = new Stock();
+			int restartPoint = 1;
+			int retries = 0;
+			int maxRetries = 8;
+
+			int batchSize=0;
 			for (int i = 1; i <= numItems; i++) {
 				stock.s_i_id = i;
 				stock.s_w_id = w_id;
@@ -331,10 +367,27 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 				stckPrepStmt.setString(idx++, TPCCUtil.randomStr(24));
 				stckPrepStmt.setString(idx++, TPCCUtil.randomStr(24));
 				stckPrepStmt.addBatch();
-				if ((k % TPCCConfig.configCommitCount) == 0) {
+				batchSize++;
+				if ((k % TPCCConfig.configCommitCount) == 0 || i == numItems) {
 					stckPrepStmt.executeBatch();
 					stckPrepStmt.clearBatch();
-					transCommit(conn);
+					boolean completed = transCommit(conn);
+					if(completed) {
+						restartPoint = i + 1;
+						retries=0;
+					}
+					else{
+						retries++;
+						if(retries == maxRetries){
+							LOG.error("Max retries for loading stock, giving up");
+							return (k);
+						}
+						k -= batchSize;
+						i = restartPoint;
+						int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+						Thread.sleep(sleep_ms);
+					}
+					batchSize = 0;
 				}
 			} // end for [i]
 
@@ -355,55 +408,74 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 	} // end loadStock()
 
 	protected int loadDistricts(Connection conn, int w_id, int distWhseKount) {
+    	int retries=0;
+    	int maxRetries=8;
+    	int k=0;
+		while(true) {
+			retries++;
+			if(retries==maxRetries){
+				return 0;
+			}
+			k = 0;
+			try {
 
-		int k = 0;
+				PreparedStatement distPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_DISTRICT);
+				District district = new District();
 
-		try {
+				for (int d = 1; d <= distWhseKount; d++) {
+					district.d_id = d;
+					district.d_w_id = w_id;
+					district.d_ytd = 30000;
 
-			PreparedStatement distPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_DISTRICT);
-			District district = new District();
+					// random within [0.0000 .. 0.2000]
+					district.d_tax = (float) ((TPCCUtil.randomNumber(0, 2000, benchmark.rng())) / 10000.0);
 
-			for (int d = 1; d <= distWhseKount; d++) {
-				district.d_id = d;
-				district.d_w_id = w_id;
-				district.d_ytd = 30000;
+					district.d_next_o_id = TPCCConfig.configCustPerDist + 1;
+					district.d_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, benchmark.rng()));
+					district.d_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					district.d_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					district.d_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
+					district.d_state = TPCCUtil.randomStr(3).toUpperCase();
+					district.d_zip = "123456789";
 
-				// random within [0.0000 .. 0.2000]
-				district.d_tax = (float) ((TPCCUtil.randomNumber(0, 2000, benchmark.rng())) / 10000.0);
+					k++;
+					int idx = 1;
+					distPrepStmt.setLong(idx++, district.d_w_id);
+					distPrepStmt.setLong(idx++, district.d_id);
+					distPrepStmt.setDouble(idx++, district.d_ytd);
+					distPrepStmt.setDouble(idx++, district.d_tax);
+					distPrepStmt.setLong(idx++, district.d_next_o_id);
+					distPrepStmt.setString(idx++, district.d_name);
+					distPrepStmt.setString(idx++, district.d_street_1);
+					distPrepStmt.setString(idx++, district.d_street_2);
+					distPrepStmt.setString(idx++, district.d_city);
+					distPrepStmt.setString(idx++, district.d_state);
+					distPrepStmt.setString(idx++, district.d_zip);
+					distPrepStmt.executeUpdate();
+				} // end for [d]
 
-				district.d_next_o_id = TPCCConfig.configCustPerDist + 1;
-				district.d_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, benchmark.rng()));
-				district.d_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-				district.d_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-				district.d_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, benchmark.rng()));
-				district.d_state = TPCCUtil.randomStr(3).toUpperCase();
-				district.d_zip = "123456789";
-
-				k++;
-				int idx = 1;
-				distPrepStmt.setLong(idx++, district.d_w_id);
-				distPrepStmt.setLong(idx++, district.d_id);
-				distPrepStmt.setDouble(idx++, district.d_ytd);
-				distPrepStmt.setDouble(idx++, district.d_tax);
-				distPrepStmt.setLong(idx++, district.d_next_o_id);
-				distPrepStmt.setString(idx++, district.d_name);
-				distPrepStmt.setString(idx++, district.d_street_1);
-				distPrepStmt.setString(idx++, district.d_street_2);
-				distPrepStmt.setString(idx++, district.d_city);
-				distPrepStmt.setString(idx++, district.d_state);
-				distPrepStmt.setString(idx++, district.d_zip);
-				distPrepStmt.executeUpdate();
-			} // end for [d]
-
-			transCommit(conn);
-		} catch (SQLException se) {
-			LOG.debug(se.getMessage());
-			transRollback(conn);
-		} catch (Exception e) {
-			e.printStackTrace();
-			transRollback(conn);
+				transCommit(conn);
+				break;
+			} catch (SQLException se) {
+				LOG.debug(se.getMessage());
+				transRollback(conn);
+				int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+				try {
+					Thread.sleep(sleep_ms);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				transRollback(conn);
+				int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+				try {
+					Thread.sleep(sleep_ms);
+				} catch (InterruptedException intE) {
+					intE.printStackTrace();
+				}
+			}
 		}
-
 		return (k);
 
 	} // end loadDist()
@@ -420,6 +492,10 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 		    PreparedStatement histPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_HISTORY);
 
 			for (int d = 1; d <= districtsPerWarehouse; d++) {
+				int restartPoint = 1;
+				int retries = 0;
+				int maxRetries = 8;
+				int batchSize=0;
 				for (int c = 1; c <= customersPerDistrict; c++) {
 					Timestamp sysdate = this.benchmark.getTimestamp(System.currentTimeMillis());
 
@@ -471,6 +547,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							.randomNumber(10, 24, benchmark.rng()));
 
 					k = k + 2;
+					batchSize+=2;
 					int idx = 1;
 					custPrepStmt.setLong(idx++, customer.c_w_id);
 					custPrepStmt.setLong(idx++, customer.c_d_id);
@@ -506,12 +583,28 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					histPrepStmt.setString(idx++, history.h_data);
 					histPrepStmt.addBatch();
 
-					if ((k % TPCCConfig.configCommitCount) == 0) {
+					if ((k % TPCCConfig.configCommitCount) == 0 || (c == customersPerDistrict)) {
 						custPrepStmt.executeBatch();
 						histPrepStmt.executeBatch();
 						custPrepStmt.clearBatch();
 						custPrepStmt.clearBatch();
-						transCommit(conn);
+						boolean completed = transCommit(conn);
+						if(completed) {
+							restartPoint = c + 1;
+							retries=0;
+						}
+						else{
+							retries++;
+							if(retries == maxRetries){
+								LOG.error("Max retries for loading customers, giving up");
+								return (k);
+							}
+							k -= batchSize;
+							c = restartPoint;
+							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+							Thread.sleep(sleep_ms);
+						}
+						batchSize = 0;
 					}
 				} // end for [c]
 			} // end for [d]
@@ -539,9 +632,9 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 		int k = 0;
 		int t = 0;
 		try {
-		    PreparedStatement ordrPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_OPENORDER);
-		    PreparedStatement nworPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_NEWORDER);
-		    PreparedStatement orlnPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_ORDERLINE);
+			PreparedStatement ordrPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_OPENORDER);
+			PreparedStatement nworPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_NEWORDER);
+			PreparedStatement orlnPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_ORDERLINE);
 
 			Oorder oorder = new Oorder();
 			NewOrder new_order = new NewOrder();
@@ -564,7 +657,12 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					c_ids[i] = temp;
 				}
 
+
 				int newOrderBatch = 0;
+				int restartPoint = 1;
+				int retries = 0;
+				int maxRetries = 8;
+				int batchSize=0;
 				for (int c = 1; c <= customersPerDistrict; c++) {
 
 					oorder.o_id = c;
@@ -583,20 +681,21 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					oorder.o_entry_d = this.benchmark.getTimestamp(System.currentTimeMillis());
 
 					k++;
+					batchSize++;
 					int idx = 1;
 					ordrPrepStmt.setInt(idx++, oorder.o_w_id);
-		            ordrPrepStmt.setInt(idx++, oorder.o_d_id);
-		            ordrPrepStmt.setInt(idx++, oorder.o_id);
-		            ordrPrepStmt.setInt(idx++, oorder.o_c_id);
-		            if (oorder.o_carrier_id != null) {
-		                ordrPrepStmt.setInt(idx++, oorder.o_carrier_id);
-		            } else {
-		                ordrPrepStmt.setNull(idx++, Types.INTEGER);
-		            }
-		            ordrPrepStmt.setInt(idx++, oorder.o_ol_cnt);
-		            ordrPrepStmt.setInt(idx++, oorder.o_all_local);
-		            ordrPrepStmt.setTimestamp(idx++, oorder.o_entry_d);
-		            ordrPrepStmt.addBatch();
+					ordrPrepStmt.setInt(idx++, oorder.o_d_id);
+					ordrPrepStmt.setInt(idx++, oorder.o_id);
+					ordrPrepStmt.setInt(idx++, oorder.o_c_id);
+					if (oorder.o_carrier_id != null) {
+						ordrPrepStmt.setInt(idx++, oorder.o_carrier_id);
+					} else {
+						ordrPrepStmt.setNull(idx++, Types.INTEGER);
+					}
+					ordrPrepStmt.setInt(idx++, oorder.o_ol_cnt);
+					ordrPrepStmt.setInt(idx++, oorder.o_all_local);
+					ordrPrepStmt.setTimestamp(idx++, oorder.o_entry_d);
+					ordrPrepStmt.addBatch();
 
 					// 900 rows in the NEW-ORDER table corresponding to the last
 					// 900 rows in the ORDER table for that district (i.e.,
@@ -607,11 +706,12 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						new_order.no_o_id = c;
 
 						k++;
+						batchSize++;
 						idx = 1;
-				        nworPrepStmt.setInt(idx++, new_order.no_w_id);
-			            nworPrepStmt.setInt(idx++, new_order.no_d_id);
-				        nworPrepStmt.setInt(idx++, new_order.no_o_id);
-			            nworPrepStmt.addBatch();
+						nworPrepStmt.setInt(idx++, new_order.no_w_id);
+						nworPrepStmt.setInt(idx++, new_order.no_d_id);
+						nworPrepStmt.setInt(idx++, new_order.no_o_id);
+						nworPrepStmt.addBatch();
 						newOrderBatch++;
 					} // end new order
 
@@ -621,7 +721,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						order_line.ol_o_id = c;
 						order_line.ol_number = l; // ol_number
 						order_line.ol_i_id = TPCCUtil.randomNumber(1,
-						        TPCCConfig.configItemCount, benchmark.rng());
+								TPCCConfig.configItemCount, benchmark.rng());
 						if (order_line.ol_o_id < FIRST_UNPROCESSED_O_ID) {
 							order_line.ol_delivery_d = oorder.o_entry_d;
 							order_line.ol_amount = 0;
@@ -635,38 +735,54 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						order_line.ol_dist_info = TPCCUtil.randomStr(24);
 
 						k++;
+						batchSize++;
 						idx = 1;
 						orlnPrepStmt.setInt(idx++, order_line.ol_w_id);
-			            orlnPrepStmt.setInt(idx++, order_line.ol_d_id);
-			            orlnPrepStmt.setInt(idx++, order_line.ol_o_id);
-			            orlnPrepStmt.setInt(idx++, order_line.ol_number);
-			            orlnPrepStmt.setLong(idx++, order_line.ol_i_id);
-			            if (order_line.ol_delivery_d != null) {
-			                orlnPrepStmt.setTimestamp(idx++, order_line.ol_delivery_d);
-			            } else {
-			                orlnPrepStmt.setNull(idx++, 0);
-			            }
-			            orlnPrepStmt.setDouble(idx++, order_line.ol_amount);
-			            orlnPrepStmt.setLong(idx++, order_line.ol_supply_w_id);
-			            orlnPrepStmt.setDouble(idx++, order_line.ol_quantity);
-			            orlnPrepStmt.setString(idx++, order_line.ol_dist_info);
-			            orlnPrepStmt.addBatch();
-
-						if ((k % TPCCConfig.configCommitCount) == 0) {
-							ordrPrepStmt.executeBatch();
-							if (newOrderBatch > 0) {
-							    nworPrepStmt.executeBatch();
-							    newOrderBatch = 0;
-							}
-							orlnPrepStmt.executeBatch();
-							
-							ordrPrepStmt.clearBatch();
-							nworPrepStmt.clearBatch();
-							orlnPrepStmt.clearBatch();
-							transCommit(conn);
+						orlnPrepStmt.setInt(idx++, order_line.ol_d_id);
+						orlnPrepStmt.setInt(idx++, order_line.ol_o_id);
+						orlnPrepStmt.setInt(idx++, order_line.ol_number);
+						orlnPrepStmt.setLong(idx++, order_line.ol_i_id);
+						if (order_line.ol_delivery_d != null) {
+							orlnPrepStmt.setTimestamp(idx++, order_line.ol_delivery_d);
+						} else {
+							orlnPrepStmt.setNull(idx++, 0);
 						}
-
+						orlnPrepStmt.setDouble(idx++, order_line.ol_amount);
+						orlnPrepStmt.setLong(idx++, order_line.ol_supply_w_id);
+						orlnPrepStmt.setDouble(idx++, order_line.ol_quantity);
+						orlnPrepStmt.setString(idx++, order_line.ol_dist_info);
+						orlnPrepStmt.addBatch();
 					} // end for [l]
+
+					if ((batchSize >= TPCCConfig.configCommitCount) || (c == customersPerDistrict)) {
+						ordrPrepStmt.executeBatch();
+						if (newOrderBatch > 0) {
+							nworPrepStmt.executeBatch();
+							newOrderBatch = 0;
+						}
+						orlnPrepStmt.executeBatch();
+
+						ordrPrepStmt.clearBatch();
+						nworPrepStmt.clearBatch();
+						orlnPrepStmt.clearBatch();
+						boolean completed = transCommit(conn);
+						if(completed) {
+							restartPoint = c + 1;
+							retries=0;
+						}
+						else{
+							retries++;
+							if(retries == maxRetries){
+								LOG.error("Max retries for loading orders, giving up");
+								return (k);
+							}
+							k -= batchSize;
+							c = restartPoint;
+							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
+							Thread.sleep(sleep_ms);
+						}
+						batchSize = 0;
+					}
 
 				} // end for [c]
 
@@ -674,22 +790,22 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 
 
 			if (LOG.isDebugEnabled())  LOG.debug("  Writing final records " + k + " of " + t);
-		    ordrPrepStmt.executeBatch();
-		    nworPrepStmt.executeBatch();
-		    orlnPrepStmt.executeBatch();
+			ordrPrepStmt.executeBatch();
+			nworPrepStmt.executeBatch();
+			orlnPrepStmt.executeBatch();
 			transCommit(conn);
 
-        } catch (SQLException se) {
-            LOG.debug(se.getMessage());
-            se.printStackTrace();
-            transRollback(conn);
-        } catch (Exception e) {
-            e.printStackTrace();
-            transRollback(conn);
-        }
+		} catch (SQLException se) {
+			LOG.debug(se.getMessage());
+			se.printStackTrace();
+			transRollback(conn);
+		} catch (Exception e) {
+			e.printStackTrace();
+			transRollback(conn);
+		}
 
-        return (k);
+		return (k);
 
-    } // end loadOrder()
+	} // end loadOrder()
 
 } // end LoadData Class
