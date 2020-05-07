@@ -201,9 +201,19 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
                 batchSize++;
 
                 if (batchSize == TPCCConfig.configCommitCount || i == itemKount) {
-                    itemPrepStmt.executeBatch();
+									boolean completed = true;
+									try {
+										itemPrepStmt.executeBatch();
+									}
+									catch(SQLException se){
+										LOG.debug(se.getMessage());
+										transRollback(conn);
+										completed=false;
+									}
                     itemPrepStmt.clearBatch();
-                    boolean completed = transCommit(conn);
+									if(completed) {
+										completed = transCommit(conn);
+									}
                     if(completed) {
 											restartPoint = i + 1;
 											retries=0;
@@ -372,9 +382,19 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 				stckPrepStmt.addBatch();
 				batchSize++;
 				if ((k % TPCCConfig.configCommitCount) == 0 || i == numItems) {
-					stckPrepStmt.executeBatch();
+					boolean completed = true;
+					try {
+						stckPrepStmt.executeBatch();
+					}
+					catch(SQLException se){
+						LOG.debug(se.getMessage());
+						transRollback(conn);
+						completed=false;
+					}
 					stckPrepStmt.clearBatch();
-					boolean completed = transCommit(conn);
+					if(completed) {
+						completed = transCommit(conn);
+					}
 					if(completed) {
 						restartPoint = i + 1;
 						retries=0;
@@ -590,11 +610,21 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					histPrepStmt.addBatch();
 
 					if ((batchSize >= TPCCConfig.configCommitCount) || (c == customersPerDistrict)) {
-						custPrepStmt.executeBatch();
-						histPrepStmt.executeBatch();
+						boolean completed = true;
+						try {
+							custPrepStmt.executeBatch();
+							histPrepStmt.executeBatch();
+						}
+						catch(SQLException se){
+							LOG.debug(se.getMessage());
+							transRollback(conn);
+							completed=false;
+						}
 						custPrepStmt.clearBatch();
 						custPrepStmt.clearBatch();
-						boolean completed = transCommit(conn);
+						if(completed) {
+							completed = transCommit(conn);
+						}
 						if(completed) {
 							restartPoint = c + 1;
 							retries=0;
