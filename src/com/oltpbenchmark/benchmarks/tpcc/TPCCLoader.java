@@ -137,7 +137,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
         try {
             conn.rollback();
         } catch (SQLException se) {
-            LOG.debug(se.getMessage());
+            LOG.error(se.getMessage());
         }
     }
 
@@ -675,7 +675,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							completed=false;
 						}
 						custPrepStmt.clearBatch();
-						custPrepStmt.clearBatch();
+						histPrepStmt.clearBatch();
 						if(completed) {
 							completed = transCommit(conn);
 						}
