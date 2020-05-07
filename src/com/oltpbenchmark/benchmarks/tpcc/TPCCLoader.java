@@ -145,9 +145,18 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
         try {
             conn.commit();
         } catch (SQLException se) {
-            LOG.error(se.getMessage());
-            transRollback(conn);
-            return false;
+					LOG.error(se.getMessage());
+					SQLException next = se.getNextException();
+					while (next != null) {
+						StringBuilder sb = new StringBuilder();
+						sb.append("SQL error: ").append(next.getSQLState())
+								.append(". Message: ").append(next.getMessage());
+						LOG.error(sb.toString());
+						next = next.getNextException();
+					}
+					se.printStackTrace();
+					transRollback(conn);
+					return false;
         }
         return true;
     }
@@ -207,6 +216,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 									}
 									catch(SQLException se){
 										LOG.debug(se.getMessage());
+										SQLException next = se.getNextException();
+										while (next != null) {
+											StringBuilder sb = new StringBuilder();
+											sb.append("SQL error: ").append(next.getSQLState())
+													.append(". Message: ").append(next.getMessage());
+											LOG.error(sb.toString());
+											next = next.getNextException();
+										}
+										se.printStackTrace();
 										transRollback(conn);
 										completed=false;
 									}
@@ -302,6 +320,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					break;
 				} catch (SQLException se) {
 					LOG.debug(se.getMessage());
+					SQLException next = se.getNextException();
+					while (next != null) {
+						StringBuilder sb = new StringBuilder();
+						sb.append("SQL error: ").append(next.getSQLState())
+								.append(". Message: ").append(next.getMessage());
+						LOG.error(sb.toString());
+						next = next.getNextException();
+					}
+					se.printStackTrace();
 					transRollback(conn);
 					LOG.error("Retrying loading warehouses");
 					int sleep_ms = (int) ((Math.pow(2,retry) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
@@ -388,6 +415,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					}
 					catch(SQLException se){
 						LOG.debug(se.getMessage());
+						SQLException next = se.getNextException();
+						while (next != null) {
+							StringBuilder sb = new StringBuilder();
+							sb.append("SQL error: ").append(next.getSQLState())
+									.append(". Message: ").append(next.getMessage());
+							LOG.error(sb.toString());
+							next = next.getNextException();
+						}
+						se.printStackTrace();
 						transRollback(conn);
 						completed=false;
 					}
@@ -483,6 +519,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 				break;
 			} catch (SQLException se) {
 				LOG.debug(se.getMessage());
+				SQLException next = se.getNextException();
+				while (next != null) {
+					StringBuilder sb = new StringBuilder();
+					sb.append("SQL error: ").append(next.getSQLState())
+							.append(". Message: ").append(next.getMessage());
+					LOG.error(sb.toString());
+					next = next.getNextException();
+				}
+				se.printStackTrace();
 				transRollback(conn);
 				LOG.error("Retrying loading districts");
 				int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
@@ -617,6 +662,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						}
 						catch(SQLException se){
 							LOG.debug(se.getMessage());
+							SQLException next = se.getNextException();
+							while (next != null) {
+								StringBuilder sb = new StringBuilder();
+								sb.append("SQL error: ").append(next.getSQLState())
+										.append(". Message: ").append(next.getMessage());
+								LOG.error(sb.toString());
+								next = next.getNextException();
+							}
+							se.printStackTrace();
 							transRollback(conn);
 							completed=false;
 						}
@@ -803,6 +857,15 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						}
 					  catch(SQLException se){
 							LOG.debug(se.getMessage());
+							SQLException next = se.getNextException();
+							while (next != null) {
+								StringBuilder sb = new StringBuilder();
+								sb.append("SQL error: ").append(next.getSQLState())
+										.append(". Message: ").append(next.getMessage());
+								LOG.error(sb.toString());
+								next = next.getNextException();
+							}
+							se.printStackTrace();
 							transRollback(conn);
 							completed=false;
 						}
