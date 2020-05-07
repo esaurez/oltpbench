@@ -589,7 +589,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					histPrepStmt.setString(idx++, history.h_data);
 					histPrepStmt.addBatch();
 
-					if ((k % TPCCConfig.configCommitCount) == 0 || (c == customersPerDistrict)) {
+					if ((batchSize >= TPCCConfig.configCommitCount) || (c == customersPerDistrict)) {
 						custPrepStmt.executeBatch();
 						histPrepStmt.executeBatch();
 						custPrepStmt.clearBatch();
