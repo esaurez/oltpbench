@@ -762,17 +762,26 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					} // end for [l]
 
 					if ((batchSize >= TPCCConfig.configCommitCount) || (c == customersPerDistrict)) {
-						ordrPrepStmt.executeBatch();
-						if (newOrderBatch > 0) {
-							nworPrepStmt.executeBatch();
-							newOrderBatch = 0;
+						boolean completed = true;
+					  try {
+							ordrPrepStmt.executeBatch();
+							if (newOrderBatch > 0) {
+								nworPrepStmt.executeBatch();
+								newOrderBatch = 0;
+							}
+							orlnPrepStmt.executeBatch();
 						}
-						orlnPrepStmt.executeBatch();
-
+					  catch(SQLException se){
+							LOG.debug(se.getMessage());
+							transRollback(conn);
+							completed=false;
+						}
 						ordrPrepStmt.clearBatch();
 						nworPrepStmt.clearBatch();
 						orlnPrepStmt.clearBatch();
-						boolean completed = transCommit(conn);
+						if(completed) {
+							completed = transCommit(conn);
+						}
 						if(completed) {
 							restartPoint = c + 1;
 							retries=0;
