@@ -210,6 +210,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 										}
                     else{
                     	retries++;
+											LOG.error("Retrying loading items");
                     	if(retries == maxRetries){
                     		LOG.error("Max retries for loading items, giving up");
 												return (k);
@@ -257,7 +258,8 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
       while(true) {
       	retry++;
       	if(retry == maxRetries){
-      		return(1);
+					LOG.error("Max Retry loading warehouses");
+      		return(0);
 				}
 				try {
 					PreparedStatement whsePrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_WAREHOUSE);
@@ -291,6 +293,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 				} catch (SQLException se) {
 					LOG.debug(se.getMessage());
 					transRollback(conn);
+					LOG.error("Retrying loading warehouses");
 					int sleep_ms = (int) ((Math.pow(2,retry) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 					try {
 						Thread.sleep(sleep_ms);
@@ -378,7 +381,9 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					}
 					else{
 						retries++;
+						LOG.error("Retrying loading stock");
 						if(retries == maxRetries){
+
 							LOG.error("Max retries for loading stock, giving up");
 							return (k);
 						}
@@ -459,6 +464,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 			} catch (SQLException se) {
 				LOG.debug(se.getMessage());
 				transRollback(conn);
+				LOG.error("Retrying loading districts");
 				int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 				try {
 					Thread.sleep(sleep_ms);
@@ -595,6 +601,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						}
 						else{
 							retries++;
+							LOG.error("Retrying loading customers");
 							if(retries == maxRetries){
 								LOG.error("Max retries for loading customers, giving up");
 								return (k);
@@ -771,6 +778,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							retries=0;
 						}
 						else{
+							LOG.error("Retrying loading orders");
 							retries++;
 							if(retries == maxRetries){
 								LOG.error("Max retries for loading orders, giving up");
