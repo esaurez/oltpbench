@@ -243,7 +243,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 												return (k);
 											}
                     	k -= batchSize;
-                    	i = restartPoint;
+                    	i = restartPoint-1;
 											LOG.error("Retrying loading items at index "+i);
 											int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 											Thread.sleep(sleep_ms);
@@ -443,8 +443,8 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							return (k);
 						}
 						k -= batchSize;
-						i = restartPoint;
-						LOG.error("Retrying loading stock at stock"+i);
+						i = restartPoint-1;
+						LOG.error("Retrying loading stock at stock "+i);
 						int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 						Thread.sleep(sleep_ms);
 					}
@@ -690,7 +690,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 								return (k);
 							}
 							k -= batchSize;
-							c = restartPoint;
+							c = restartPoint-1;
 							LOG.error("Retrying loading customers at index "+c);
 							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 							Thread.sleep(sleep_ms);
@@ -886,7 +886,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 								return (k);
 							}
 							k -= batchSize;
-							c = restartPoint;
+							c = restartPoint-1;
 							LOG.error("Retrying loading orders at index "+c);
 							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 							Thread.sleep(sleep_ms);
