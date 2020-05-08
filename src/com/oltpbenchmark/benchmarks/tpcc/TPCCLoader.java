@@ -238,13 +238,13 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 										}
                     else{
                     	retries++;
-											LOG.error("Retrying loading items");
                     	if(retries == maxRetries){
                     		LOG.error("Max retries for loading items, giving up");
 												return (k);
 											}
                     	k -= batchSize;
                     	i = restartPoint;
+											LOG.error("Retrying loading items at index "+i);
 											int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 											Thread.sleep(sleep_ms);
 										}
@@ -354,7 +354,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 		int len = 0;
 		int startORIGINAL = 0;
 		try {
-		    PreparedStatement stckPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_STOCK);
+			PreparedStatement stckPrepStmt = getInsertStatement(conn, TPCCConstants.TABLENAME_STOCK);
 
 			Stock stock = new Stock();
 			int restartPoint = 1;
@@ -437,7 +437,6 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 					}
 					else{
 						retries++;
-						LOG.error("Retrying loading stock");
 						if(retries == maxRetries){
 
 							LOG.error("Max retries for loading stock, giving up");
@@ -445,6 +444,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						}
 						k -= batchSize;
 						i = restartPoint;
+						LOG.error("Retrying loading stock at stock"+i);
 						int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 						Thread.sleep(sleep_ms);
 					}
@@ -685,13 +685,13 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 						}
 						else{
 							retries++;
-							LOG.error("Retrying loading customers");
 							if(retries == maxRetries){
 								LOG.error("Max retries for loading customers, giving up");
 								return (k);
 							}
 							k -= batchSize;
 							c = restartPoint;
+							LOG.error("Retrying loading customers at index "+c);
 							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 							Thread.sleep(sleep_ms);
 						}
@@ -880,7 +880,6 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							retries=0;
 						}
 						else{
-							LOG.error("Retrying loading orders");
 							retries++;
 							if(retries == maxRetries){
 								LOG.error("Max retries for loading orders, giving up");
@@ -888,6 +887,7 @@ public class TPCCLoader extends Loader<TPCCBenchmark> {
 							}
 							k -= batchSize;
 							c = restartPoint;
+							LOG.error("Retrying loading orders at index "+c);
 							int sleep_ms = (int) ((Math.pow(2,retries) * 100) + TPCCUtil.randomNumber(0,9, benchmark.rng()) + 1);
 							Thread.sleep(sleep_ms);
 						}
